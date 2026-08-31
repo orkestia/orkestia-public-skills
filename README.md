@@ -2,7 +2,9 @@
 
 Domain knowledge skills for operating the **Orkestia** platform through its public MCP server (`orkestia-core`) — written for agents and users who have **no access to source code or internal documentation**. The MCP catalog is the single source of truth: every capability is a registered, schema-typed workflow discovered and run through the MCP tools.
 
-All content was derived exclusively from the live MCP catalog (workflow listings, schemas, prerequisites, and the server's `concept://` / `rule://` resources). Catalog snapshot: 2026-08-20 — 2,374 workflow types across 67 namespaces. The catalog is always the authoritative list; verify specifics with `list_workflow_types()` and `get_workflow_schema()`.
+All content is derived from the live MCP catalog (workflow listings, schemas, prerequisites, and the server's `concept://` / `rule://` resources). Catalog snapshot: 2026-08-31 — 4,546 workflow types across 91 first-level namespaces. The catalog is always authoritative; verify specifics with `list_workflow_types()` and `get_workflow_schema()` rather than treating counts in these files as frozen.
+
+This pack covers **platform operating domains** (identity, connections, runners, tickets, staff, apps, billing). It does not wrap every provider catalog (AWS, DocuSign, Hostinger, Xero, …). For those, use the operating loop: discover by prefix, read the schema, then start.
 
 ## Skills
 
@@ -22,4 +24,12 @@ All content was derived exclusively from the live MCP catalog (workflow listings
 
 ## Format
 
-Each skill is a directory with a `SKILL.md` carrying YAML frontmatter (`name`, `description`) and the domain playbook: what the domain is, its object model, how to wire it, how to use it day-to-day, and its gotchas.
+Each skill is a directory:
+
+| File | Role |
+|---|---|
+| `SKILL.md` | The playbook. When to load, named use cases, step-by-step how-to recipes, object model, safe reads, gotchas. YAML frontmatter: `name`, `description` (third person, WHAT + WHEN). Keep under 500 lines. |
+| `reference.md` | Workflow map grouped by job-to-be-done. Not an alphabetical dump. One level deep from `SKILL.md`. |
+| `examples.md` | Worked scenarios with real workflow types and example `initial_data`. |
+
+`SKILL.md` must teach **how to operate** the domain, not only list that a feature exists. Every primary flow is a numbered recipe an agent can follow through MCP.
