@@ -14,7 +14,7 @@ start_workflow("identity.app.provision", {
 })
 ```
 
-From the terminal state, keep `identity_app_uuid`, `client_uuid`, `client_key`, and `integration` (`authorize_url`, `code_exchange_url`, `jwks_url`, `issuer`, `discovery_url`). Put `client_key` in the frontend. Wire `@orkestia/auth` (or the same PKCE steps): redirect to `authorize_url`, POST `{ code, code_verifier }` to `code_exchange_url`, verify the RS256 JWT against `jwks_url`.
+From the terminal state, keep `identity_app_uuid`, `client_uuid`, `client_key`, and `integration` (`authorize_url`, `code_exchange_url`, `jwks_url`, `issuer`, `discovery_url`). Put `client_key` in the frontend. Wire `@orkestia/auth` from `github:orkestia/orkestia-auth-sdk` (or the same PKCE steps): redirect to `authorize_url`, POST `{ code, code_verifier }` to `code_exchange_url`, verify the RS256 JWT against `jwks_url`.
 
 Add another localhost origin later:
 

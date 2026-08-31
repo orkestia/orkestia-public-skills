@@ -65,7 +65,7 @@ Assume `whoami()` already ran. Before every mutation, `get_workflow_schema(<type
 1. `get_workflow_schema("identity.app.provision")`.
 2. `start_workflow("identity.app.provision", { "name": "<app name>", "redirect_uris": ["http://localhost:5173/callback", "https://<app>/callback"] })`.
 3. Watch the run. Terminal output includes `identity_app_uuid`, `client_uuid`, public PKCE `client_key` (not a secret — safe in browser source), `redirect_uris`, and `integration` (`issuer`, `discovery_url`, `authorize_url`, `code_exchange_url`, `jwks_url`, plus `flow` / `sdk`).
-4. **Frontend:** PKCE authorization-code against those endpoints. SDK `@orkestia/auth` (`github:ltinteg/ltinteg-orkestia-auth-sdk`). Reference app: `github:ltinteg/ltinteg-orkestia-demo-app`.
+4. **Frontend:** PKCE authorization-code against those endpoints. SDK `@orkestia/auth` (`github:orkestia/orkestia-auth-sdk`; `npm i github:orkestia/orkestia-auth-sdk` until the package is on npm).
    - `signIn()`: PKCE verifier + challenge, redirect to `authorize_url` (hosted login at login.orkestia.dev).
    - On `/callback`: POST `{ code, code_verifier }` to `code_exchange_url` → RS256 JWT.
    - Verify locally against `jwks_url` (`iss` = `issuer`). The token never appears in a URL.
