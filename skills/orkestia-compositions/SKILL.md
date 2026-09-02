@@ -17,7 +17,7 @@ Call `whoami` first. Omit `organization_uuid` (and `actor` on identity.app types
 
 ## When to load
 
-Load this skill when the user wants to design, validate, save, version, activate, archive, rename, or import a composition; when they ask to run `virtual.<uuid>@<version>`; when they need glue without code (`control.*`); when they want GitOps-style plan/import from GitHub; or when they want to schedule a composition, bind it as a Staff `entrypoint_workflow`, or expose it to app end-users.
+Load this skill when the user wants to design, validate, save, version, activate, archive, rename, or import a composition; when they ask to run `virtual.<uuid>@<version>`; when they need glue without code (`control.*`); when they want GitOps-style plan/import from GitHub; or when they want to schedule a composition, bind it as a Staff `entrypoint_workflow`, or expose it to app end-users. If they are authoring `*.vw.ts` or running `orkestia composition push`, load `orkestia-builder-workflows` instead (same platform, TypeScript/CLI path).
 
 ## Use cases
 

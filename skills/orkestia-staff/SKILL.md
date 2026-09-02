@@ -20,7 +20,7 @@ Load this skill when the user wants to:
 - Grant/revoke roles, set RBAC mode, or mint actor tokens
 - Answer “is this actor healthy / what is running / are we overspending / org-chart health?”
 
-Load `orkestia-agents` when the work is configs, skills, MCP servers, or sessions rather than the org chart.
+Load `orkestia-agents` when the work is configs, skills, MCP servers, or sessions rather than the org chart. Load `orkestia-builder-ops` when Staff is declared as `*.staff.ts` and applied with `orkestia staff apply`.
 
 ## Use cases
 

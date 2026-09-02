@@ -42,7 +42,7 @@ Load this skill when the user wants to:
 - Declare virtual tables, write owner-scoped records, or host `<slug>.app.orkestia.dev`
 - Mint an **org-member** API token while shipping (not an end-user credential)
 
-Use `orkestia-mcp-operating-loop` for the discovery → schema → start → watch loop. Use `orkestia-subscription` to pay for seats or to satisfy `apphost.site.claim` preconditions.
+Use `orkestia-mcp-operating-loop` for the discovery → schema → start → watch loop. Use `orkestia-subscription` to pay for seats or to satisfy `apphost.site.claim` preconditions. Use `orkestia-builder` (and its sibling builder skills) when the product is a TypeScript/React app in the Builder Framework — CLI, `orkestia.config.ts`, and exposed virtual workflows from code.
 
 ## Use cases
 

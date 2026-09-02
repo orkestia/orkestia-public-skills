@@ -6,7 +6,9 @@ Licensed under [MIT](LICENSE). You may copy these skill directories into an agen
 
 All content is derived from the live MCP catalog (workflow listings, schemas, prerequisites, and the server's `concept://` / `rule://` resources). Catalog snapshot: 2026-08-31 — 4,546 workflow types across 91 first-level namespaces. The catalog is always authoritative; verify specifics with `list_workflow_types()` and `get_workflow_schema()` rather than treating counts in these files as frozen.
 
-This pack covers **platform operating domains** (identity, connections, runners, tickets, staff, apps, billing). It does not wrap every provider catalog (AWS, DocuSign, Hostinger, Xero, …). For those, use the operating loop: discover by prefix, read the schema, then start.
+This pack covers **platform operating domains** (identity, connections, runners, tickets, staff, apps, billing) and the **Builder Framework** (TypeScript/React apps whose desired state is code). It does not wrap every provider catalog (AWS, DocuSign, Hostinger, Xero, …). For those, use the operating loop: discover by prefix, read the schema, then start.
+
+MCP skills assume no application repo. Builder skills assume `@orkestia/*` + the `orkestia` CLI. Same platform; two surfaces.
 
 ## Skills
 
@@ -23,6 +25,11 @@ This pack covers **platform operating domains** (identity, connections, runners,
 | `orkestia-registry-network` | Synced inventories (`registry.*`, `network.*`) consumed by runners and deploys |
 | `orkestia-app-platform` | End-user apps: `identity.app`, end-users, seats, `appdata`, `apphost`, feature flags |
 | `orkestia-subscription` | Stripe-backed billing (`subscription.*`): checkout, seats, add-ons, metering |
+| `orkestia-builder` | Builder Framework hub: AppShell, token planes, CLI lifecycle, generated state |
+| `orkestia-builder-workflows` | TypeScript compositions (`*.vw.ts`), push/expose, `useWorkflow` |
+| `orkestia-builder-data` | Virtual Data Structures (`*.data.ts`), AppData plan/apply, record wrappers |
+| `orkestia-builder-ops` | Resource-as-Code, Staff-as-Code, workspaces, AppHost publish |
+| `orkestia-builder-dashfront` | Code-first end-user analytics dashboards (`defineDashboard`) |
 
 ## Format
 

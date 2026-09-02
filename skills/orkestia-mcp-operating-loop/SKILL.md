@@ -27,7 +27,7 @@ watch_workflow(id) | get_workflow_status(id)
 
 ## When to load
 
-Load this skill at the start of any Orkestia session, before a domain skill. Load it when the user asks what they can do, how to find a workflow they cannot name, whether a start is safe, how to read a finished run, why a run failed or sat idle, or how to retry / resolve / abandon it. Load it when the `user-orkestia` namespace is `needsAuth` or a tool returns an authentication error — call `mcp_auth` with no arguments, then `whoami` again. Load it when the user wants to *see* a fleet or cluster instead of a prose list (`open_app`).
+Load this skill at the start of any Orkestia **MCP** session, before a domain skill. If the user is building an `@orkestia/*` application (CLI, React shell, `*.vw.ts`), load `orkestia-builder` as well — MCP remains how you confirm catalog types and inspect runs. Load it when the user asks what they can do, how to find a workflow they cannot name, whether a start is safe, how to read a finished run, why a run failed or sat idle, or how to retry / resolve / abandon it. Load it when the `user-orkestia` namespace is `needsAuth` or a tool returns an authentication error — call `mcp_auth` with no arguments, then `whoami` again. Load it when the user wants to *see* a fleet or cluster instead of a prose list (`open_app`).
 
 ## Use cases
 
