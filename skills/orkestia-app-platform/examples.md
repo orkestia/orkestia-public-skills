@@ -167,6 +167,8 @@ start_workflow("apphost.release.create", {
 
 Keep `release_uuid`, `upload_url`, `upload_fields`, `expires_in_seconds`, `max_bundle_bytes`.
 
+`upload_fields` must include `key`, `policy`, `x-amz-algorithm`, `x-amz-credential`, `x-amz-date`, `x-amz-signature`, `x-amz-security-token`. If any is missing, stop — platform bug; do not decode `policy` or invent fields.
+
 Build a root-level zip (publish rejects a nested `index.html`):
 
 ```bash
@@ -174,13 +176,21 @@ printf '%s\n' '<h1>Hello world</h1>' > index.html
 zip -X bundle.zip index.html
 ```
 
-POST — every `upload_fields` entry, then the file. Do not invent field names; use whatever create returned:
+POST — every `upload_fields` entry, then the file last. Use the returned names; do not invent fields.
 
 ```bash
 # UPLOAD_URL and UPLOAD_FIELDS come from apphost.release.create terminal output.
 python3 - <<'PY'
-import json, os, subprocess
+import json, os, subprocess, sys
 fields = json.loads(os.environ["UPLOAD_FIELDS"])
+required = {
+    "key", "policy", "x-amz-algorithm", "x-amz-credential",
+    "x-amz-date", "x-amz-signature", "x-amz-security-token",
+}
+missing = sorted(required - fields.keys())
+if missing:
+    print("incomplete ticket; missing", missing, file=sys.stderr)
+    raise SystemExit(2)
 cmd = ["curl", "-sS", "-X", "POST", os.environ["UPLOAD_URL"]]
 for k, v in fields.items():
     cmd.extend(["-F", f"{k}={v}"])
@@ -189,7 +199,7 @@ raise SystemExit(subprocess.call(cmd))
 PY
 ```
 
-If DNS or the POST fails: stop. Report claim + `release_uuid` + `pending_upload` + "runtime cannot reach upload_url". Do **not** start publish. Do **not** try Hostinger or `storage.object.put`.
+If DNS or the POST fails: stop. Report claim + `release_uuid` + `pending_upload` + the failure (cannot reach `upload_url`, incomplete ticket missing SigV4 keys, or S3 status). Do **not** start publish. Do **not** try Hostinger or `storage.object.put`. Do **not** decode `policy`.
 
 Only after HTTP 2xx/204 from the POST:
 

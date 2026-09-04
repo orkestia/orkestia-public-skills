@@ -170,7 +170,8 @@ There is **no** MCP tool that accepts the zip. `apphost.release.create` only min
 1. `get_workflow_schema("apphost.release.create")`.
 2. `start_workflow("apphost.release.create", { "site_uuid": "<uuid>" })`. Omit `organization_uuid` / `created_by_user_uuid` (context-injected).
 3. Keep `release_uuid`, `upload_url`, `upload_fields`, `expires_in_seconds`, `max_bundle_bytes`, `prefix`.
-4. If create fails, stop. Do not invent an upload URL.
+4. `upload_fields` must contain **all** of: `key`, `policy`, `x-amz-algorithm`, `x-amz-credential`, `x-amz-date`, `x-amz-signature`, `x-amz-security-token`. If any of those is missing, **stop**. That is a platform bug. Do **not** invent the missing fields. Do **not** decode `policy` to recover them. Report which keys were present.
+5. If create fails, stop. Do not invent an upload URL.
 
 #### C. Build `bundle.zip` (runtime filesystem)
 
@@ -191,12 +192,26 @@ SPA: zip the built `dist/` **contents** so `index.html` is at zip root.
 
 #### D. POST the zip (runtime HTTP — not a workflow)
 
-`upload_url` is typically `https://<bucket>.s3.amazonaws.com/`. The bucket is **private**; the form is a short-lived ticket for one key.
+`upload_url` is typically `https://<bucket>.s3.amazonaws.com/`. The bucket is **private**; the form is a short-lived SigV4 ticket for one key. The pod uses STS (`ASIA…` + session token), so the form **must** include `x-amz-credential` and `x-amz-security-token`. Omitting either yields S3 `403 InvalidAccessKeyId`.
 
 1. Resolve `upload_url` (DNS). If it fails, **stop** — see Failure below. Do not call publish.
-2. Multipart POST: every key in `upload_fields` as a form field (use the returned names; do not invent or drop fields). Last field: `file` = `bundle.zip` bytes (`curl -F` semantics).
+2. Multipart POST to `upload_url`: one form field per `upload_fields` key, using the returned names and values (do not invent, rename, or drop fields). Last field: `file` = `bundle.zip` bytes (`curl -F` semantics — `file` must be last).
 3. Expect HTTP 2xx/204 from S3. Anything else: stop, keep `release_uuid`, do not publish.
 4. The presign expires (`expires_in_seconds`, default 900). After expiry, run **create again** — do not reuse old fields.
+
+Example of the required SigV4 fields (`file` last). If create returned extra keys, POST those too — do not drop them.
+
+```bash
+curl -sS -X POST "$UPLOAD_URL" \
+  -F "key=${KEY}" \
+  -F "policy=${POLICY}" \
+  -F "x-amz-algorithm=${X_AMZ_ALGORITHM}" \
+  -F "x-amz-credential=${X_AMZ_CREDENTIAL}" \
+  -F "x-amz-date=${X_AMZ_DATE}" \
+  -F "x-amz-signature=${X_AMZ_SIGNATURE}" \
+  -F "x-amz-security-token=${X_AMZ_SECURITY_TOKEN}" \
+  -F "file=@bundle.zip"
+```
 
 #### E. Publish (MCP) — only after a successful POST
 
@@ -227,6 +242,12 @@ If DNS or HTTPS to `upload_url` fails (common in ChatGPT / locked-down agent san
 - Do **not** try Hostinger, `storage.object.put`, or another provider as a substitute.
 - Do **not** loop create/publish hoping bytes appear.
 - If the user has a Builder repo and CLI, hand off to `orkestia-builder-ops` (`orkestia apphost publish --yes`) — the CLI does D on a machine that can reach S3.
+
+#### Failure: incomplete ticket or `403 InvalidAccessKeyId`
+
+- Create returned `upload_fields` **without** `x-amz-credential` or `x-amz-security-token`: stop. Platform bug. Do not POST. Do not decode `policy`.
+- Those keys were present, you POSTed them with `file` last, and S3 returned `403 InvalidAccessKeyId`: stop, keep `release_uuid`, do not publish. Report the HTTP status and which form keys you sent (names only, not values). The ticket may have expired (`expires_in_seconds`); run create again rather than reuse fields.
+- Do not treat a 403 as “try Hostinger instead.”
 
 TypeScript/React apps with `@orkestia/*`: prefer that CLI path. This recipe is the **MCP-only** path (no app repo).
 
@@ -283,8 +304,8 @@ Prefer `read_only: true` / featured query workflows. Do **not** start `data.iden
 - `apphost.site.claim` needs live mode **and** a qualifying subscription; slug cannot change.
 - Claim ≠ live. `url` existing plus CloudFront `app not found` means no published release.
 - MCP never uploads `bundle.zip`. Create returns a ticket; the runtime POSTs; then publish. No `apphost.release.upload` type.
-- `upload_fields` is the entire form. POST every returned field, then `file=@bundle.zip`. Ticket TTL is `expires_in_seconds`.
-- Do not send AppHost bytes through Hostinger, `storage.upload.presigned-url`, or `storage.object.put`.
+- `upload_fields` must include `x-amz-credential` and `x-amz-security-token`. POST every returned field, then `file=@bundle.zip` last. Missing those two keys is a platform bug — do not decode `policy`. Ticket TTL is `expires_in_seconds`.
+- `403 InvalidAccessKeyId` usually means those SigV4 session fields were omitted or the ticket expired. Do not substitute Hostinger / `storage.object.put`.
 - Disable/delete frees the seat; `admit` is the login-time gate, not a provisioning substitute.
 - `publish-as-app` requires `identity.app.set-org-owned` (`org_owned_enabled: true`) and an `app`-owned table.
 - Record writes ignore a forged `end_user_uuid` unless it matches the end-user token.
