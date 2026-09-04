@@ -6,7 +6,7 @@ Licensed under [MIT](LICENSE). You may copy these skill directories into an agen
 
 All content is derived from the live MCP catalog (workflow listings, schemas, prerequisites, and the server's `concept://` / `rule://` resources). Catalog snapshot: 2026-09-03 — 4,550 workflow types across 91 first-level namespaces. The catalog is always authoritative; verify specifics with `list_workflow_types()` and `get_workflow_schema()` rather than treating counts in these files as frozen.
 
-This pack covers **platform operating domains** (identity, connections, runners, tickets, staff, apps, billing) and the **Builder Framework** (TypeScript/React apps whose desired state is code). It does not wrap every provider catalog (AWS, DocuSign, Hostinger, Xero, …). For those, use the operating loop: discover by prefix, read the schema, then start.
+This pack covers **platform operating domains** (organization and team, identity, connections, runners, tickets, staff, apps, billing) and the **Builder Framework** (TypeScript/React apps whose desired state is code). It does not wrap every provider catalog (AWS, DocuSign, Hostinger, Xero, …). For those, use the operating loop: discover by prefix, read the schema, then start.
 
 MCP skills assume no application repo. Builder skills assume `@orkestia/*` + the `orkestia` CLI. Same platform; two surfaces.
 
@@ -20,6 +20,7 @@ New to Orkestia? Load `orkestia-start-here` first: it connects a client to `mcp.
 |---|---|
 | `orkestia-start-here` | Day zero: connect a client, confirm identity, first reads, hello world, first guided mutation, route by goal |
 | `orkestia-concepts` | Vocabulary and mental model across every domain; grounded platform descriptions |
+| `orkestia-org-and-team` | Members, invitations, roles, member API tokens, profile, platform billing and user seats, org-wide denylist |
 | `orkestia-mcp-operating-loop` | The discovery → prerequisites → run → recovery loop every domain uses |
 | `orkestia-connections` | Provider credentials (`connection.*`) — the root object everything references |
 | `orkestia-runners` | Compute fleets (`runner.*`): groups, environments, executions, warm pools, DevKit |

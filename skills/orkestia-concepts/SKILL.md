@@ -98,8 +98,8 @@ account → organization → member token
 |---|---|---|
 | Account | A person who signed up in the web console. | console |
 | Organization | The tenant. Every run and object is scoped to one. Created in the console, never over MCP. | `identity.organization.*` (read only) |
-| Member | An account holding a role (`owner`, `admin`, `member`) in an organization. Invited by email. Uses the console and API tokens. | `identity.membership.*`, `identity.org-invitation.*` / `orkestia-app-platform` |
-| Member token | An API token minted by a member. Scopes MCP and CLI calls to that member's organization. Shown once. | `identity.api-token.*` |
+| Member | An account holding a role (`owner`, `admin`, `member`) in an organization. Invited by email. Uses the console and API tokens. | `identity.membership.*`, `identity.org-invitation.*` / `orkestia-org-and-team` |
+| Member token | An API token minted by a member. Scopes MCP and CLI calls to that member's organization. Shown once. | `identity.api-token.*` / `orkestia-org-and-team` |
 | Identity app | A hosted PKCE login tenant for the organization's **own product**. Has a public `client_key`, redirect URIs, dev or live mode. | `identity.app.*` / `orkestia-app-platform` |
 | End-user | A customer of that product. Lives in the identity app, signs in at the hosted login, consumes a **seat**, may run only **exposed** virtual workflows. Not a member. | `identity.end-user.*`, `identity.seat.*` |
 | App-organization | A workspace inside the identity app grouping end-users (a customer's team inside the user's product). | `identity.app-organization.*` |

@@ -121,6 +121,7 @@ When the user states a goal without vocabulary, do three things in order.
 | Stand up an AI workforce, hire actors, review a founder queue | `staff.*` | `orkestia-staff` |
 | Configure agents, skills, MCP servers, sessions, cost | `agents.*` | `orkestia-agents` |
 | Sync registries and cloud networking for deploys | `registry.*`, `network.*` | `orkestia-registry-network` |
+| Invite teammates, change roles, mint API tokens, pay for the platform | `identity.*`, `subscription.platform.*` | `orkestia-org-and-team` |
 | Give their own app login, end-users, seats, data, hosting | `identity.*`, `appdata.*`, `apphost.*`, `policy.*` | `orkestia-app-platform` |
 | Pay, change plan, buy seats or add-ons | `subscription.*` | `orkestia-subscription` |
 | Write a TypeScript/React app on `@orkestia/*` | CLI + code | `orkestia-builder` and siblings |
@@ -166,7 +167,7 @@ Mutations in this skill, each behind explicit confirmation: `identity.api-token.
 
 ## Sibling skills
 
-`orkestia-concepts` (vocabulary and mental model), `orkestia-mcp-operating-loop` (tool mechanics every domain uses), then the domain skills in the routing table.
+`orkestia-concepts` (vocabulary and mental model), `orkestia-org-and-team` (teammates, tokens, platform billing), `orkestia-mcp-operating-loop` (tool mechanics every domain uses), then the domain skills in the routing table.
 
 ## Additional resources
 

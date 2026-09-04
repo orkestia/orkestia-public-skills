@@ -17,7 +17,7 @@ First-level namespaces observed on 2026-09-03 (91 total). Re-list with `list_wor
 
 | Domain | Namespaces | Root object | Skill |
 |---|---|---|---|
-| Identity and tenancy | `identity`, `user`, `policy` | organization, member, identity app, end-user, seat, feature flag | `orkestia-app-platform` |
+| Identity and tenancy | `identity`, `user`, `policy`, `security` | organization, member, identity app, end-user, seat, feature flag, org denylist | `orkestia-org-and-team` (members, tokens), `orkestia-app-platform` (end-users) |
 | Provider credentials | `connection` | connection | `orkestia-connections` |
 | Clouds | `aws`, `gcp`, `azure`, `mgc` | connection UUID | operating loop by prefix |
 | Edge and CDN | `cloudflare`, `bunnycdn`, `netlify`, `vercel` | connection UUID | operating loop by prefix |
