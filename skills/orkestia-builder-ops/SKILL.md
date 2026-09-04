@@ -159,6 +159,8 @@ orkestia apphost publish --yes
 
 `--yes` on AppHost: production build → ZIP with `index.html` at root → claimed site from `identity.identity_app_uuid` → presigned upload → publish → verify active release. Org scope comes from the **member token**, not an AppHost input.
 
+MCP-only agents (no CLI, no app repo) must follow `orkestia-app-platform` recipe 7. The MCP server does not upload the zip; the runtime POSTs to `upload_url`. If that host cannot be resolved, stop and report `pending_upload` — do not call the site live. Do not use Hostinger workflows as AppHost.
+
 Live Identity must be `mode: "live"`, HTTPS callbacks, production origins registered, **same** `client_key` as the claimed site. Publishing can succeed while login fails if Identity values point at a different app.
 
 `orkestia deploy` emits an **external** S3/CloudFront **plan** from `config.deploy`. It does not mutate cloud from the CLI. Prefer AppHost for the integrated path.

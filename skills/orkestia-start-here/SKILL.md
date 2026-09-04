@@ -90,6 +90,7 @@ Pick one, confirm intent with the user, then run. Both are `read_only: false`.
 2. Confirm the app name and callback URLs with the user.
 3. `start_workflow("identity.app.provision", { "name": "<app>", "redirect_uris": ["http://localhost:5173/callback"] })` → watch.
 4. Output: `identity_app_uuid`, `client_uuid`, public `client_key` (not a secret), `redirect_uris`, `integration` (issuer, discovery, authorize, code-exchange, JWKS URLs). Keep the two UUIDs. Continue in `orkestia-app-platform` (MCP) or `orkestia-builder` (TypeScript app).
+5. A hosted page at `<slug>.app.orkestia.dev` is **not** done here. Provision is login. Follow `orkestia-app-platform` recipe 7 through **POST `bundle.zip` + publish + GET verify**. Claim alone leaves CloudFront `app not found`.
 
 **B. A saved composition of `control.*` steps.** Teaches `composition.*` without a provider. Follow `orkestia-compositions`, using only `control.*` steps; the result is a `virtual.<uuid>@<version>` type the org can run and schedule.
 

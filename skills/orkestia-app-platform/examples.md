@@ -144,18 +144,20 @@ start_workflow("identity.app.set-end-user-agent", {
 
 End-user runtime is `agents.end-user.ask` / `ask-stream` (tools = exposed compositions only).
 
-## 5. Claim a site and publish a release
+## 5. Host a Hello World page on AppHost
 
-Requires live-mode app + qualifying subscription (`orkestia-subscription`).
+Requires a **live-mode** identity app + qualifying subscription. Provision + `identity.app.set-mode` first if the app is still `dev` (one-way — confirm `mode` on the schema).
+
+Claim is not enough. Do not call the URL live until step F.
 
 ```
 start_workflow("apphost.site.claim", {
   "identity_app_uuid": "<app>",
-  "slug": "northwind"
+  "slug": "hello-world"
 })
 ```
 
-Keep `site_uuid` and `url` (`https://northwind.app.orkestia.dev`).
+Keep `site_uuid` and `url` (`https://hello-world.app.orkestia.dev`). GET that URL now will be `app not found`.
 
 ```
 start_workflow("apphost.release.create", {
@@ -163,7 +165,33 @@ start_workflow("apphost.release.create", {
 })
 ```
 
-POST `bundle.zip` to `upload_url` with `upload_fields` (size-capped by `max_bundle_bytes`). Then:
+Keep `release_uuid`, `upload_url`, `upload_fields`, `expires_in_seconds`, `max_bundle_bytes`.
+
+Build a root-level zip (publish rejects a nested `index.html`):
+
+```bash
+printf '%s\n' '<h1>Hello world</h1>' > index.html
+zip -X bundle.zip index.html
+```
+
+POST — every `upload_fields` entry, then the file. Do not invent field names; use whatever create returned:
+
+```bash
+# UPLOAD_URL and UPLOAD_FIELDS come from apphost.release.create terminal output.
+python3 - <<'PY'
+import json, os, subprocess
+fields = json.loads(os.environ["UPLOAD_FIELDS"])
+cmd = ["curl", "-sS", "-X", "POST", os.environ["UPLOAD_URL"]]
+for k, v in fields.items():
+    cmd.extend(["-F", f"{k}={v}"])
+cmd.extend(["-F", "file=@bundle.zip"])
+raise SystemExit(subprocess.call(cmd))
+PY
+```
+
+If DNS or the POST fails: stop. Report claim + `release_uuid` + `pending_upload` + "runtime cannot reach upload_url". Do **not** start publish. Do **not** try Hostinger or `storage.object.put`.
+
+Only after HTTP 2xx/204 from the POST:
 
 ```
 start_workflow("apphost.release.publish", {
@@ -171,21 +199,20 @@ start_workflow("apphost.release.publish", {
 })
 ```
 
-Rollback:
+Verify:
 
 ```
-start_workflow("apphost.release.rollback", {
-  "site_uuid": "<from claim>"
-})
+start_workflow("apphost.site.get", { "site_uuid": "<from claim>" })
+start_workflow("apphost.site.release-list", { "site_uuid": "<from claim>" })
 ```
 
-Suspend:
+`active_release_uuid` must match. GET `url` must return `<h1>Hello world</h1>`. If release-list shows `pending_upload` and null `bundle_bytes`, the POST never landed.
+
+Rollback / suspend after a real publish:
 
 ```
-start_workflow("apphost.site.set-mode", {
-  "site_uuid": "<from claim>",
-  "mode": "suspended"
-})
+start_workflow("apphost.release.rollback", { "site_uuid": "<from claim>" })
+start_workflow("apphost.site.set-mode", { "site_uuid": "<from claim>", "mode": "suspended" })
 ```
 
 ## 6. Mint an org-member API token while shipping
