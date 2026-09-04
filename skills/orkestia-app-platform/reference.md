@@ -123,7 +123,7 @@ Re-list `prefix="apphost."`. Create does **not** transfer bytes — it returns a
 | `apphost.site.release-list` | History; `is_active`, `status`, `bundle_bytes`. `pending_upload` + null bytes = POST skipped |
 | `apphost.site.set-mode` | `active` \| `redirect` \| `suspended`. `redirect_target` required iff `redirect` |
 | `apphost.site.domain-attach` / `domain-list` / `domain-detach` | Custom hostname (ACM + CDN). Read schemas first |
-| `apphost.release.create` | `pending_upload` + ticket. Caller: `site_uuid` → `release_uuid`, `upload_url`, `upload_fields`, `expires_in_seconds`, `max_bundle_bytes`. Runtime must POST `bundle.zip` |
+| `apphost.release.create` | `pending_upload` + SigV4 POST ticket. Caller: `site_uuid` → `release_uuid`, `upload_url`, `upload_fields` (`key`, `policy`, `x-amz-algorithm`, `x-amz-credential`, `x-amz-date`, `x-amz-signature`, `x-amz-security-token`), `expires_in_seconds`, `max_bundle_bytes`. Runtime POSTs `bundle.zip` (`file` last). Missing credential/session-token fields ⇒ stop, do not decode `policy` |
 | `apphost.release.publish` | Activate after the POST. Caller: `release_uuid` only |
 | `apphost.release.rollback` | Re-point. Caller: `site_uuid`; optional `release_uuid` |
 
