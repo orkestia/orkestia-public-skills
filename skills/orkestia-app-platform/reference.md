@@ -1,6 +1,6 @@
 # App platform — workflow map
 
-Re-list before treating this as complete. Snapshot used while writing: `identity.*` (72), `appdata.*` (2) + `data.appdata.*` (13), `apphost.*` (8), `policy.*` (6), `data.identity.*` (29 persist internals).
+Re-list before treating this as complete. Snapshot used while writing: `identity.*` (72), `appdata.*` (2) + `data.appdata.*` (13), `apphost.*` (11), `policy.*` (6), `data.identity.*` (29 persist internals).
 
 ```
 whoami()
@@ -112,16 +112,19 @@ End-user agent runtime (not under `identity.`): `agents.end-user.ask`, `agents.e
 | `data.appdata.document.confirm` | Mark active. Caller: `document_uuid`; optional `size`, `checksum` |
 | `data.appdata.document.query` / `download-url` / `delete` | List / fetch URL / soft-delete |
 
-## Hosting (`apphost.*`, 8)
+## Hosting (`apphost.*`)
+
+Re-list `prefix="apphost."`. Create does **not** transfer bytes — it returns a presigned POST. Publish HEADs `bundle.zip` and fails with `bundle not uploaded` if the client POST never ran.
 
 | Type | Job |
 |---|---|
-| `apphost.site.claim` | Reserve `<slug>.app.orkestia.dev`. Caller: `identity_app_uuid`; optional `slug`. Live-mode + subscription-gated; slug immutable; idempotent per app |
-| `apphost.site.get` / `list` | Fetch / paginate sites |
-| `apphost.site.release-list` | Release history; flags currently served |
+| `apphost.site.claim` | Reserve `<slug>.app.orkestia.dev`. Caller: `identity_app_uuid`; optional `slug`. Live-mode + subscription-gated; slug immutable; idempotent per app. **No release yet** |
+| `apphost.site.get` / `list` | Fetch / paginate. `active_release_uuid` null ⇒ URL is `app not found` |
+| `apphost.site.release-list` | History; `is_active`, `status`, `bundle_bytes`. `pending_upload` + null bytes = POST skipped |
 | `apphost.site.set-mode` | `active` \| `redirect` \| `suspended`. `redirect_target` required iff `redirect` |
-| `apphost.release.create` | `pending_upload` + presigned POST. Caller: `site_uuid` → `upload_url`, `upload_fields`, `max_bundle_bytes` |
-| `apphost.release.publish` | Activate uploaded `bundle.zip`. Caller: `release_uuid` |
+| `apphost.site.domain-attach` / `domain-list` / `domain-detach` | Custom hostname (ACM + CDN). Read schemas first |
+| `apphost.release.create` | `pending_upload` + ticket. Caller: `site_uuid` → `release_uuid`, `upload_url`, `upload_fields`, `expires_in_seconds`, `max_bundle_bytes`. Runtime must POST `bundle.zip` |
+| `apphost.release.publish` | Activate after the POST. Caller: `release_uuid` only |
 | `apphost.release.rollback` | Re-point. Caller: `site_uuid`; optional `release_uuid` |
 
 ## Policy (`policy.*`, 6)

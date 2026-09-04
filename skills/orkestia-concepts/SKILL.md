@@ -119,7 +119,7 @@ account → organization → member token
 | Registry account | A container registry bound to a connection and synced into an inventory of repositories, images, and tags. | `registry.*` / `orkestia-registry-network` |
 | Network account | Cloud networking bound to a connection and synced into scopes, segments, and boundaries. | `network.*` |
 | Deployment target | A cluster or namespace adopted for releases. | `deploy.*`, `kubernetes.*`, `k8s.*` |
-| AppHost | Static hosting for the user's front-end at a claimed site. Needs a live-mode identity app and subscription state. | `apphost.*` / `orkestia-app-platform` |
+| AppHost | Static hosting at `<slug>.app.orkestia.dev`. Claim reserves the slug; a presigned POST of `bundle.zip` plus `apphost.release.publish` makes the page live. Claim alone is `app not found`. | `apphost.*` / `orkestia-app-platform` |
 
 ### Orchestration
 

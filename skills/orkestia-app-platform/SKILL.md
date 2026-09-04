@@ -7,8 +7,9 @@ description: >-
   virtual tables and documents, host the frontend on apphost, and gate features
   with flags. Also covers org-member API tokens, invitations, and membership
   needed while shipping. Use when the user mentions Sign in with Orkestia,
-  identity.app, end-users, seats, appdata, apphost, feature flags, PKCE, or
-  exposing workflows to app customers.
+  identity.app, end-users, seats, appdata, apphost, AppHost, hosted site,
+  <slug>.app.orkestia.dev, bundle.zip, "app not found", feature flags, PKCE,
+  or exposing workflows to app customers.
 ---
 
 # Orkestia app platform
@@ -144,16 +145,90 @@ Records are owner-scoped and policy-checked. `identity_app_uuid` / `end_user_uui
 4. Documents: `data.appdata.document.request-upload` (`storage_connection_uuid`, `bucket`, `kind`; optional `content_type`, `visibility_scope`, `ref_table_slug`, `ref_record_uuid`) → `document_uuid` plus server-chosen `bucket` / `key`. Upload the object, then `data.appdata.document.confirm` (`document_uuid`; optional `size`, `checksum`). Then `query` / `download-url` / `delete`.
 5. Org-published rows visible to every end-user: first `identity.app.set-org-owned` (`identity_app_uuid`, `org_owned_enabled: true`). Then `appdata.publish-as-app` (`identity_app_uuid`, `database_slug`, `table_slug`, plus `payload` **or** `payloads`; table must declare ownership kind `app`). Keep `record_uuids`. Retract with `appdata.retract-as-app` (`identity_app_uuid`, `database_slug`, `table_slug`, `record_uuids`, `reason` — reason is required; no filter form).
 
-### 7. Host the frontend
+### 7. Host the frontend (exact MCP sequence)
 
-`apphost.site.claim` is subscription-gated and requires a provisioned, **live-mode** identity app. Slug is immutable after claim; the call is idempotent per app.
+A claimed hostname is **not** a live page. Claim writes a `hosted_site` with `active_release_uuid = null`. Until `apphost.release.publish` succeeds, `https://<slug>.app.orkestia.dev` returns CloudFront **`app not found`**.
+
+There is **no** MCP tool that accepts the zip. `apphost.release.create` only mints a **presigned S3 POST** (private bucket, one key, size-capped, ~900s TTL). The **client runtime** must HTTP-upload `bundle.zip`. The pod then publishes. Do not confuse this with Hostinger (`hostinger.*`) or `storage.upload.presigned-url` — those are other ticket factories.
+
+**Do not say the app is live** after provision or claim. Live means: GET the URL returns the site HTML **and** `apphost.site.get` shows a non-null `active_release_uuid`.
+
+#### Preconditions
+
+1. Identity app exists (`identity.app.provision` — recipe 1). Keep `identity_app_uuid`.
+2. App is **live**, not `dev`. If needed: `identity.app.set-mode` with `identity_app_uuid` + `mode` from the schema (one-way). Confirm `mode` on the schema; do not invent values.
+3. Org has a qualifying platform subscription (`orkestia-subscription`). Claim is subscription-gated.
+
+#### A. Claim (MCP)
 
 1. `get_workflow_schema("apphost.site.claim")`.
-2. `start_workflow("apphost.site.claim", { "identity_app_uuid": "<uuid>", "slug": "<optional>" })`. Slug pattern `^[a-z][a-z0-9-]{2,39}$`; omit to derive from the app name. Output: `site_uuid`, `slug`, `url` (`https://<slug>.app.orkestia.dev`), `created` / `already_exists`.
-3. `apphost.release.create` (`site_uuid`) → `release_uuid`, `upload_url`, `upload_fields` (presigned POST for `bundle.zip`), `max_bundle_bytes`, `prefix`. POST the zip with those form fields.
-4. `apphost.release.publish` (`release_uuid`) — byte-quota check, extract to the immutable prefix, CDN routing flip, registers the site's `/callback` on the identity client, prunes beyond retention.
-5. Rollback: `apphost.release.rollback` (`site_uuid`; optional `release_uuid`, default previous published). Serving mode: `apphost.site.set-mode` (`site_uuid`, `mode`: `active` | `redirect` | `suspended`; `redirect_target` required iff `redirect`).
-6. Reads: `apphost.site.get` / `list`, `apphost.site.release-list` (flags the currently served release).
+2. `start_workflow("apphost.site.claim", { "identity_app_uuid": "<uuid>", "slug": "<optional>" })`. Slug `^[a-z][a-z0-9-]{2,39}$`; omit to derive from the app name. Immutable after claim; idempotent per identity app.
+3. Keep `site_uuid`, `slug`, `url` (`https://<slug>.app.orkestia.dev`), `created` / `already_exists`.
+
+#### B. Open a release (MCP)
+
+1. `get_workflow_schema("apphost.release.create")`.
+2. `start_workflow("apphost.release.create", { "site_uuid": "<uuid>" })`. Omit `organization_uuid` / `created_by_user_uuid` (context-injected).
+3. Keep `release_uuid`, `upload_url`, `upload_fields`, `expires_in_seconds`, `max_bundle_bytes`, `prefix`.
+4. If create fails, stop. Do not invent an upload URL.
+
+#### C. Build `bundle.zip` (runtime filesystem)
+
+Publish requires a zip with **`index.html` at the archive root** (not in a subfolder). Extra static files are fine. Rejected: zip-slip paths, missing root `index.html`, over `max_bundle_bytes`.
+
+Minimal page:
+
+```html
+<h1>Hello world</h1>
+```
+
+```bash
+printf '%s\n' '<h1>Hello world</h1>' > index.html
+zip -X bundle.zip index.html
+```
+
+SPA: zip the built `dist/` **contents** so `index.html` is at zip root.
+
+#### D. POST the zip (runtime HTTP — not a workflow)
+
+`upload_url` is typically `https://<bucket>.s3.amazonaws.com/`. The bucket is **private**; the form is a short-lived ticket for one key.
+
+1. Resolve `upload_url` (DNS). If it fails, **stop** — see Failure below. Do not call publish.
+2. Multipart POST: every key in `upload_fields` as a form field (use the returned names; do not invent or drop fields). Last field: `file` = `bundle.zip` bytes (`curl -F` semantics).
+3. Expect HTTP 2xx/204 from S3. Anything else: stop, keep `release_uuid`, do not publish.
+4. The presign expires (`expires_in_seconds`, default 900). After expiry, run **create again** — do not reuse old fields.
+
+#### E. Publish (MCP) — only after a successful POST
+
+1. `get_workflow_schema("apphost.release.publish")`.
+2. `start_workflow("apphost.release.publish", { "release_uuid": "<uuid>" })`.
+3. Watch. Success: `url`, `slug`, `bundle_sha256`, `bundle_bytes`, `uploaded_count`, `callback_registered`. Publish HEADs `bundle.zip`, extracts to the immutable prefix, flips CDN routing, appends `https://<slug>.app.orkestia.dev/callback` on the identity client, prunes old releases.
+4. If publish says `bundle not uploaded`, the POST never landed. Do not retry publish until D succeeds (new create if the ticket expired).
+
+#### F. Verify (required)
+
+1. `start_workflow("apphost.site.get", { "site_uuid": "<uuid>" })` — `active_release_uuid` must be the release you published.
+2. `start_workflow("apphost.site.release-list", { "site_uuid": "<uuid>" })` — that release `status` is published and `is_active` is true. `pending_upload` with null `bundle_bytes` means D never happened.
+3. HTTP GET `url`. Success: the HTML you zipped. **`app not found`**: no active release (claim-only or failed D/E).
+
+#### After it is live
+
+- Rollback: `apphost.release.rollback` (`site_uuid`; optional `release_uuid`, default previous published).
+- Serving mode: `apphost.site.set-mode` (`site_uuid`, `mode`: `active` | `redirect` | `suspended`; `redirect_target` required iff `redirect`).
+- Custom hostname: `apphost.site.domain-attach` / `domain-list` / `domain-detach` (read schemas first).
+- Reads: `apphost.site.get` / `list`, `apphost.site.release-list`.
+
+#### Failure: runtime cannot reach S3
+
+If DNS or HTTPS to `upload_url` fails (common in ChatGPT / locked-down agent sandboxes):
+
+- Report **exactly**: identity app (uuid), site (`site_uuid`, `slug`, `url`), release (`release_uuid`, `status=pending_upload`), that MCP create succeeded, that **this runtime cannot POST to the presigned URL**, that publish was **not** started.
+- Do **not** claim the Hello World page is live.
+- Do **not** try Hostinger, `storage.object.put`, or another provider as a substitute.
+- Do **not** loop create/publish hoping bytes appear.
+- If the user has a Builder repo and CLI, hand off to `orkestia-builder-ops` (`orkestia apphost publish --yes`) — the CLI does D on a machine that can reach S3.
+
+TypeScript/React apps with `@orkestia/*`: prefer that CLI path. This recipe is the **MCP-only** path (no app repo).
 
 ### 8. Feature flags
 
@@ -206,6 +281,10 @@ Prefer `read_only: true` / featured query workflows. Do **not** start `data.iden
 - `client_key` is public by design (PKCE). Never treat it as a client secret.
 - `identity.app.set-mode` (dev → live) is **one-way**. Claim hosting only after live.
 - `apphost.site.claim` needs live mode **and** a qualifying subscription; slug cannot change.
+- Claim ≠ live. `url` existing plus CloudFront `app not found` means no published release.
+- MCP never uploads `bundle.zip`. Create returns a ticket; the runtime POSTs; then publish. No `apphost.release.upload` type.
+- `upload_fields` is the entire form. POST every returned field, then `file=@bundle.zip`. Ticket TTL is `expires_in_seconds`.
+- Do not send AppHost bytes through Hostinger, `storage.upload.presigned-url`, or `storage.object.put`.
 - Disable/delete frees the seat; `admit` is the login-time gate, not a provisioning substitute.
 - `publish-as-app` requires `identity.app.set-org-owned` (`org_owned_enabled: true`) and an `app`-owned table.
 - Record writes ignore a forged `end_user_uuid` unless it matches the end-user token.
