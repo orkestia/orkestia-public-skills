@@ -176,7 +176,9 @@ printf '%s\n' '<h1>Hello world</h1>' > index.html
 zip -X bundle.zip index.html
 ```
 
-POST — every `upload_fields` entry, then the file last. Use the returned names; do not invent fields.
+With a shell, skip the rest of this example: `python3 scripts/apphost_deploy.py --slug hello-world .` (see SKILL.md, "Fastest path") does create, upload, publish and verify without the model copying the signed form.
+
+POST — every `upload_fields` entry, then the file last. Use the returned names; do not invent fields. `UPLOAD_FIELDS` must be the create output byte for byte: a model retyping `policy` or the session token breaks the signature (`SignatureDoesNotMatch` / `InvalidToken`).
 
 ```bash
 # UPLOAD_URL and UPLOAD_FIELDS come from apphost.release.create terminal output.

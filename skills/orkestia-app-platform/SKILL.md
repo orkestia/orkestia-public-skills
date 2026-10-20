@@ -151,6 +151,24 @@ A claimed hostname is **not** a live page. Claim writes a `hosted_site` with `ac
 
 There is **no** MCP tool that accepts the zip. `apphost.release.create` only mints a **presigned S3 POST** (private bucket, one key, size-capped, ~900s TTL). The **client runtime** must HTTP-upload `bundle.zip`. The pod then publishes. Do not confuse this with Hostinger (`hostinger.*`) or `storage.upload.presigned-url` — those are other ticket factories.
 
+#### Fastest path: one command (use it whenever the runtime has a shell)
+
+`scripts/apphost_deploy.py` (Python 3.8+, standard library only) does B–F in one process: `apphost.release.create` → S3 upload → `apphost.release.publish` → checks that the URL serves the new build. Use it instead of B–F for any site that is already claimed.
+
+```bash
+curl -fsSLO https://raw.githubusercontent.com/orkestia/orkestia-public-skills/main/skills/orkestia-app-platform/scripts/apphost_deploy.py
+python3 apphost_deploy.py --check dist/            # bundle only: index.html at root, no localhost URLs
+python3 apphost_deploy.py --slug <slug> dist/      # publish (or --site-uuid <uuid>; a .zip also works)
+```
+
+It needs an API token of the organization that owns the site. The **person** creates it in the console (Settings → API Tokens) and saves it to `~/.orkestia/api-token` in their own terminal (or exports `ORKESTIA_API_TOKEN`). Never ask for the token in chat.
+
+Why not copy the MCP output into a curl command: the upload form is ~3 KB of signed data (`policy`, `x-amz-signature`, AWS session token). A model retyping it changes a character now and then, and S3 answers `SignatureDoesNotMatch` or `InvalidToken` even though the platform issued a valid ticket. The script never lets the model touch those values.
+
+It also refuses a build that still points at `http://localhost:…`. A bundle built with a dev redirect URI publishes fine but every login fails with `redirect_uri is not registered`: the production redirect URI is `https://<slug>.app.orkestia.dev/callback` (publish registers it).
+
+B–F below are for runtimes with no shell.
+
 **Do not say the app is live** after provision or claim. Live means: GET the URL returns the site HTML **and** `apphost.site.get` shows a non-null `active_release_uuid`.
 
 #### Preconditions
@@ -199,19 +217,8 @@ SPA: zip the built `dist/` **contents** so `index.html` is at zip root.
 3. Expect HTTP 2xx/204 from S3. Anything else: stop, keep `release_uuid`, do not publish.
 4. The presign expires (`expires_in_seconds`, default 900). After expiry, run **create again** — do not reuse old fields.
 
-Example of the required SigV4 fields (`file` last). If create returned extra keys, POST those too — do not drop them.
-
-```bash
-curl -sS -X POST "$UPLOAD_URL" \
-  -F "key=${KEY}" \
-  -F "policy=${POLICY}" \
-  -F "x-amz-algorithm=${X_AMZ_ALGORITHM}" \
-  -F "x-amz-credential=${X_AMZ_CREDENTIAL}" \
-  -F "x-amz-date=${X_AMZ_DATE}" \
-  -F "x-amz-signature=${X_AMZ_SIGNATURE}" \
-  -F "x-amz-security-token=${X_AMZ_SECURITY_TOKEN}" \
-  -F "file=@bundle.zip"
-```
+5. **Never retype** `policy`, `x-amz-signature` or `x-amz-security-token`. One changed character breaks the signature. If you can only move them by copying them from the MCP output, use the fastest path above instead.
+6. `SignatureDoesNotMatch` or `InvalidToken` means the fields were altered between create and the POST, not that the platform credentials are wrong. Do not "fix" the token from the decoded `policy`. Run create again and send the fields unchanged.
 
 #### E. Publish (MCP) — only after a successful POST
 
